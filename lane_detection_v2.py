@@ -35,7 +35,7 @@ def getLines(image):
     lines = cv2.HoughLinesP(image, rho=1, theta=np.pi/180, threshold=30, maxLineGap=200)
     return lines
 
-def average(image, lines):
+def average(lines):
     left = []
     right = []
 
@@ -64,34 +64,37 @@ def makePoints(image, average):
     return np.array([x1, y1, x2, y2])
 
 def displayLines(image, lines):
-    #lines_image = np.zeros_like(image)
+    lines_image = np.zeros_like(image)
     if lines is not None:
         for line in lines:
             x1, y1, x2, y2 = line
-            cv2.line(image, (x1, y1), (x2, y2), (0, 0, 255), 10)
-    return image
+            cv2.line(lines_image, (x1, y1), (x2, y2), (0, 180, 0), 9)
+    return lines_image
 
+#For debugging purposes.
 def displayLineCoordinates(image, lines):
     fig = plt.figure(figsize=(10, 10))
+    rows, cols = 1, len(lines)
     for idx, line in enumerate(lines):
         debugImg = image.copy()
-        x1, y1, x2, y2 = line[0]
-        cv2.line(debugImg, (x1, y1), (x2, y2), (0, 0, 255), 3)
-        fig.add_subplot(1, 3, idx + 1)
+        x1, y1, x2, y2 = line[0] if len(lines.shape) > 2 else line 
+        #x1, y1, x2, y2 = line
+        cv2.line(debugImg, (x1, y1), (x2, y2), (0, 0, 255), 9)
+        fig.add_subplot(rows, cols, idx + 1)
         plt.title(f"Line: {idx + 1}.")
         plt.imshow(debugImg)
     plt.show()
 
-img = image.copy()
-img = gray(img)
-img = gauss(img)
-img = canny(img)
-img = region(img)
-lines = cv2.HoughLinesP(img, rho=1, theta=np.pi/180, threshold=30, maxLineGap=200)
-averaged_lines = average(img, lines)
-print(averaged_lines)
-lanes = displayLines(img, averaged_lines)
-# #lanes = cv2.addWeighted(image, 0.8, black_lines, 1, 1)
+img_copy = image.copy()
+img_copy = gray(img_copy)
+img_copy = gauss(img_copy)
+img_copy = canny(img_copy)
+img_copy = region(img_copy)
+lines = getLines(img_copy)
+averaged_lines = average(lines)
+displayLineCoordinates(image, lines)
+black_lines = displayLines(image, averaged_lines)
+lanes = cv2.addWeighted(image, 0.8, black_lines, 1, 1)
 plt.figure(figsize=(10, 10))
 plt.imshow(lanes)
 plt.show()
