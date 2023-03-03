@@ -15,7 +15,7 @@ frames_list.sort(key=lambda f: int(re.sub('\D', '', f)))
 parent_dir = os.getcwd()
 current_dir = parent_dir
 parent_dir_files = os.listdir(parent_dir)
-if 'detected' in parent_dir_files:
+if 'detected_v1' in parent_dir_files:
     detection_complete = True
 
 images = []
@@ -32,8 +32,8 @@ polygon = np.array([[50, 270], [220, 160], [360, 160], [480, 270]])
 cv2.fillConvexPoly(stencil, polygon, 1)
 
 if detection_complete == False:
-    os.mkdir('detected')
-    current_dir = os.chdir('detected')
+    os.mkdir('detected_v1')
+    current_dir = os.chdir('detected_v1')
     print(f"PERFORMING LANE DETECTION FOR ALL {len(images)} IMAGES:")
     for image in tqdm(images):
         masked_image = cv2.bitwise_and(image[:, :, 0], image[:, :, 0], mask = stencil)
@@ -55,8 +55,8 @@ if detection_complete == False:
 
 current_dir = os.chdir(parent_dir)
 
-pathIn = 'detected/'
-pathOut = 'roads.mp4'
+pathIn = 'detected_v1/'
+pathOut = 'roads_v1.mp4'
 fps = 60.0
 
 detected_files = [f for f in os.listdir(pathIn) if isfile(join(pathIn, f))]
