@@ -6,11 +6,26 @@ import numpy as np
 import re
 from tqdm import tqdm
 
-frames_list = os.listdir('frames')
-frames_list.sort(key = lambda f: int(re.sub('\D', '', f)))
+detection_complete = False
+count = 0
+path_frames = 'frames'
+frames_list = os.listdir(path_frames)
+frames_list.sort(key=lambda f: int(re.sub('\D', '', f)))
 
-image_path = 'frames/' + frames_list[0]
-image = cv2.imread(image_path)
+parent_dir = os.getcwd()
+current_dir = parent_dir
+parent_dir_files = os.listdir(parent_dir)
+if 'detected_v3' in parent_dir_files:
+    detection_complete = True
+
+images = []
+print("READING ALL IMAGES INTO A LIST:")
+for frame in tqdm(frames_list):
+    img = cv2.imread(path_frames + '/' + frame)
+    images.append(img)
+
+height, width, depth = images[0].shape
+size = (width, height)
 
 def gray(image):
     image = np.asarray(image)
@@ -58,7 +73,7 @@ def average(lines):
 def makePoints(image, average):
     slope, y_intercept = average
     y1 = image.shape[0]
-    y2 = int(y1 * 2.85/5)
+    y2 = int(y1 * 3/5)
     x1 = int((y1 - y_intercept) // slope)  
     x2 = int((y2 - y_intercept) // slope)
     return np.array([x1, y1, x2, y2])
@@ -85,16 +100,48 @@ def displayLineCoordinates(image, lines):
         plt.imshow(debugImg)
     plt.show()
 
-img_copy = image.copy()
-img_copy = gray(img_copy)
-img_copy = gauss(img_copy)
-img_copy = canny(img_copy)
-img_copy = region(img_copy)
-lines = getLines(img_copy)
-averaged_lines = average(lines)
-displayLineCoordinates(image, lines)
-black_lines = displayLines(image, averaged_lines)
-lanes = cv2.addWeighted(image, 0.8, black_lines, 1, 1)
-plt.figure(figsize=(10, 10))
-plt.imshow(lanes)
-plt.show()
+if detection_complete == False:
+    os.mkdir('detected_v3')
+    current_dir = os.chdir('detected_v3')
+    print(f"PERFORMING LANE DETECTION FOR ALL {len(images)} IMAGES:")
+    for image in tqdm(images):
+        img_copy = image.copy()
+        output_image = image.copy()
+
+        img_copy = gray(img_copy)
+        img_copy = gauss(img_copy)
+        img_copy = canny(img_copy)
+        img_copy = region(img_copy)
+        lines = getLines(img_copy)
+        averaged_lines = average(lines)
+        black_lines = displayLines(output_image, averaged_lines)
+        lanes = cv2.addWeighted(output_image, 0.8, black_lines, 1, 1)
+
+        try:
+            cv2.imwrite(str(count) + '.png', lanes)
+        except TypeError:
+            print('ERROR OCCURRED WHILE SAVING IMAGE ' + str(count) + '.png')
+            cv2.imwrite(str(count) + '.png', image)
+        count += 1
+
+current_dir = os.chdir(parent_dir)
+
+pathIn = 'detected_v3/'
+pathOut = 'roads_v3.mp4'
+fps = 60.0
+
+detected_files = [f for f in os.listdir(pathIn) if isfile(join(pathIn, f))]
+detected_files.sort(key=lambda f: int(re.sub('\D', '', f)))
+
+detected_frames_list = []
+for idx in tqdm(range(len(detected_files))):
+    filename = pathIn + detected_files[idx]
+    img = cv2.imread(filename)
+    detected_frames_list.append(img)
+
+out = cv2.VideoWriter(pathOut, cv2.VideoWriter_fourcc(*'DIVX'), fps, size)
+
+for idx in range(len(detected_frames_list)):
+    out.write(detected_frames_list[idx])
+
+out.release()
