@@ -35,8 +35,12 @@ def gauss(image):
     return cv2.GaussianBlur(image, (5, 5), 0)
 
 def canny(image):
-    edges = cv2.Canny(image, 50, 150)
+    edges = cv2.Canny(image, 140, 150)
     return edges
+
+def binaryThreshold(image):
+    _, thresholded_image = cv2.threshold(image, 130, 145, cv2.THRESH_BINARY)
+    return thresholded_image
 
 def region(image):
     height, width = image.shape
@@ -54,26 +58,37 @@ def average(lines):
     left = []
     right = []
 
-    for line in lines:
-        x1, y1, x2, y2 = line[0]
-        parameters = np.polyfit((x1, x2), (y1, y2), 1)
-        slope = parameters[0]
-        y_intercept = parameters[1]
-        if slope < 0:
-            left.append((slope, y_intercept))
-        else:
-            right.append((slope, y_intercept))
+    if lines is not None:
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            parameters = np.polyfit((x1, x2), (y1, y2), 1)
+            slope = parameters[0]
+            y_intercept = parameters[1]
+            if slope < 0:
+                left.append((slope, y_intercept))
+            else:
+                right.append((slope, y_intercept))
     
-    left_avg = np.average(left, axis=0)
-    right_avg = np.average(right, axis=0)
+    if len(left) == 0:
+        left_avg = np.array([])
+    else:
+        left_avg = np.average(left, axis=0)
+    if len(right) == 0:
+        right_avg = np.array([])
+    else:
+        right_avg = np.average(right, axis=0)
+
     left_line = makePoints(image, left_avg)
     right_line = makePoints(image, right_avg)
     return np.array([left_line, right_line])
 
 def makePoints(image, average):
+    if len(average) == 0:
+        return np.array([0, 0, 0, 0])
+    
     slope, y_intercept = average
     y1 = image.shape[0]
-    y2 = int(y1 * 3/5)
+    y2 = int(y1 * 2.85/5)
     x1 = int((y1 - y_intercept) // slope)  
     x2 = int((y2 - y_intercept) // slope)
     return np.array([x1, y1, x2, y2])
@@ -83,11 +98,14 @@ def displayLines(image, lines):
     if lines is not None:
         for line in lines:
             x1, y1, x2, y2 = line
-            cv2.line(lines_image, (x1, y1), (x2, y2), (0, 180, 0), 9)
+            cv2.line(lines_image, (x1, y1), (x2, y2), (0, 180, 0), 3)
     return lines_image
 
 #For debugging purposes.
 def displayLineCoordinates(image, lines):
+    if lines is None:
+        return
+    
     fig = plt.figure(figsize=(10, 10))
     rows, cols = 1, len(lines)
     for idx, line in enumerate(lines):
@@ -128,12 +146,13 @@ current_dir = os.chdir(parent_dir)
 
 pathIn = 'detected_v3/'
 pathOut = 'roads_v3.mp4'
-fps = 60.0
+fps = 30.0
 
 detected_files = [f for f in os.listdir(pathIn) if isfile(join(pathIn, f))]
 detected_files.sort(key=lambda f: int(re.sub('\D', '', f)))
 
 detected_frames_list = []
+print("STORING OUTPUT FRAMES INTO A LIST:")
 for idx in tqdm(range(len(detected_files))):
     filename = pathIn + detected_files[idx]
     img = cv2.imread(filename)

@@ -14,7 +14,7 @@ for frame in tqdm(col_frames):
     img = cv2.imread(path + '/' + frame)
     col_images.append(img)
 
-idx = 0
+idx = 245
 original_img_colored = col_images[idx]
 example_img = col_images[idx][:, :, 0]
 figure = plt.figure(figsize=(10, 10))
@@ -28,7 +28,7 @@ masked_img = cv2.bitwise_and(example_img, example_img, mask = stencil)
 
 _, thresh = cv2.threshold(masked_img, 130, 145, cv2.THRESH_BINARY)
 
-lines = cv2.HoughLinesP(thresh, 1, np.pi/180, 30, maxLineGap = 200)
+lines = cv2.HoughLinesP(thresh, 1, np.pi/180, 20, maxLineGap = 200)
 original_img_colored_copy = original_img_colored.copy()
 print("NUMBER OF LINES = ", len(lines))
 
