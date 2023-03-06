@@ -1,31 +1,6 @@
 import cv2
-import os
-from os.path import isfile, join
 from matplotlib import pyplot as plt
 import numpy as np
-import re
-from tqdm import tqdm
-
-detection_complete = False
-count = 0
-path_frames = 'frames'
-frames_list = os.listdir(path_frames)
-frames_list.sort(key=lambda f: int(re.sub('\D', '', f)))
-
-parent_dir = os.getcwd()
-current_dir = parent_dir
-parent_dir_files = os.listdir(parent_dir)
-if 'detected_v3' in parent_dir_files:
-    detection_complete = True
-
-images = []
-print("READING ALL IMAGES INTO A LIST:")
-for frame in tqdm(frames_list):
-    img = cv2.imread(path_frames + '/' + frame)
-    images.append(img)
-
-height, width, depth = images[0].shape
-size = (width, height)
 
 def gray(image):
     image = np.asarray(image)
@@ -39,12 +14,12 @@ def canny(image):
     return edges
 
 def binaryThreshold(image):
-    _, thresholded_image = cv2.threshold(image, 130, 145, cv2.THRESH_BINARY)
+    _, thresholded_image = cv2.threshold(image, 1, 200, cv2.THRESH_BINARY)
     return thresholded_image
 
 def region(image):
-    height, width = image.shape
-    polygon = np.array([[50, 270], [220, 160], [360, 160], [480, 270]])
+    mask_height, mask_width = 500, 720
+    polygon = np.array([(350, 0), (640, 0), (mask_width, mask_height), (70, mask_height)])
     mask = np.zeros_like(image)
     mask = cv2.fillConvexPoly(mask, polygon, 1)
     mask = cv2.bitwise_and(image, mask)
@@ -98,7 +73,7 @@ def displayLines(image, lines):
     if lines is not None:
         for line in lines:
             x1, y1, x2, y2 = line
-            cv2.line(lines_image, (x1, y1), (x2, y2), (0, 180, 0), 3)
+            cv2.line(lines_image, (x1, y1), (x2, y2), (0, 180, 0), 6)
     return lines_image
 
 #For debugging purposes.
@@ -118,49 +93,17 @@ def displayLineCoordinates(image, lines):
         plt.imshow(debugImg)
     plt.show()
 
-if detection_complete == False:
-    os.mkdir('detected_v3')
-    current_dir = os.chdir('detected_v3')
-    print(f"PERFORMING LANE DETECTION FOR ALL {len(images)} IMAGES:")
-    for image in tqdm(images):
-        img_copy = image.copy()
-        output_image = image.copy()
+def showImage(image, title, grayscale=True):
+    plt.figure(figsize=(10, 10))
+    if grayscale == True:
+        plt.imshow(image, cmap = 'gray')
+    else:
+        plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    plt.title(title)
+    plt.show()
 
-        img_copy = gray(img_copy)
-        img_copy = gauss(img_copy)
-        img_copy = canny(img_copy)
-        img_copy = region(img_copy)
-        lines = getLines(img_copy)
-        averaged_lines = average(lines, img_copy)
-        black_lines = displayLines(output_image, averaged_lines)
-        lanes = cv2.addWeighted(output_image, 0.8, black_lines, 1, 1)
-
-        try:
-            cv2.imwrite(str(count) + '.png', lanes)
-        except TypeError:
-            print('ERROR OCCURRED WHILE SAVING IMAGE ' + str(count) + '.png')
-            cv2.imwrite(str(count) + '.png', image)
-        count += 1
-
-current_dir = os.chdir(parent_dir)
-
-pathIn = 'detected_v3/'
-pathOut = 'roads_v3.mp4'
-fps = 30.0
-
-detected_files = [f for f in os.listdir(pathIn) if isfile(join(pathIn, f))]
-detected_files.sort(key=lambda f: int(re.sub('\D', '', f)))
-
-detected_frames_list = []
-print("STORING OUTPUT FRAMES INTO A LIST:")
-for idx in tqdm(range(len(detected_files))):
-    filename = pathIn + detected_files[idx]
-    img = cv2.imread(filename)
-    detected_frames_list.append(img)
-
-out = cv2.VideoWriter(pathOut, cv2.VideoWriter_fourcc(*'DIVX'), fps, size)
-
-for idx in range(len(detected_frames_list)):
-    out.write(detected_frames_list[idx])
-
-out.release()
+def getSlope(line):
+    x1, y1, x2, y2 = line
+    parameters = np.polyfit((x1, x2), (y1, y2), 1)
+    slope = parameters[0]
+    return slope
