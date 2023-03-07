@@ -17,7 +17,7 @@ def binaryThreshold(image):
     _, thresholded_image = cv2.threshold(image, 1, 200, cv2.THRESH_BINARY)
     return thresholded_image
 
-def region(image):
+def getRegion(image):
     mask_height, mask_width = 500, 720
     polygon = np.array([(350, 0), (640, 0), (mask_width, mask_height), (70, mask_height)])
     mask = np.zeros_like(image)
@@ -68,7 +68,7 @@ def makePoints(image, average):
     x2 = int((y2 - y_intercept) // slope)
     return np.array([x1, y1, x2, y2])
 
-def displayLines(image, lines):
+def makeLinesOnBlackCanvas(image, lines):
     lines_image = np.zeros_like(image)
     if lines is not None:
         for line in lines:
@@ -77,7 +77,7 @@ def displayLines(image, lines):
     return lines_image
 
 #For debugging purposes.
-def displayLineCoordinates(image, lines):
+def displayLinesOnImage(image, lines):
     if lines is None:
         return
     
