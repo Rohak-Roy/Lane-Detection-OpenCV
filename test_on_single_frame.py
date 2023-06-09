@@ -5,6 +5,8 @@ import numpy as np
 import re
 from tqdm import tqdm
 
+mask_height, mask_width = 500, 720
+   
 path = 'frames'
 col_frames = os.listdir(path)
 col_frames.sort(key=lambda f: int(re.sub('\D', '', f)))
@@ -15,17 +17,19 @@ for frame in tqdm(col_frames):
     col_images.append(img)
 
 idx = 245
-original_img_colored = col_images[idx]
-example_img = col_images[idx][:, :, 0]
+# original_img_colored = col_images[idx]
+# example_img = col_images[idx][:, :, 0]
+original_img_colored = cv2.imread('2.jpg')
+example_img = original_img_colored[:, :, 0]
 figure = plt.figure(figsize=(10, 10))
 rows, cols = 3, 2
 
 stencil = np.zeros_like(example_img)
-polygon = np.array([[50, 270], [220, 160], [360, 160], [480, 270]])
+# polygon = np.array([[50, 270], [220, 160], [360, 160], [480, 270]])
+polygon = np.array([(350, 0), (640, 0), (mask_width, mask_height), (70, mask_height)])
 cv2.fillConvexPoly(stencil, polygon, 1)
 
 masked_img = cv2.bitwise_and(example_img, example_img, mask = stencil)
-
 _, thresh = cv2.threshold(masked_img, 130, 145, cv2.THRESH_BINARY)
 
 lines = cv2.HoughLinesP(thresh, 1, np.pi/180, 20, maxLineGap = 200)
